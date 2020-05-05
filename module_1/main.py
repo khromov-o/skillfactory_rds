@@ -2,7 +2,7 @@ from IPython.display import display
 import numpy as np
 import pandas as pd
 
-imdb = pd.read_csv('./data.csv')
+imdb = pd.read_csv('./data.csv', parse_dates= ['release_date'])
 display(imdb.columns)
 imdb['profit'] = imdb['revenue']-imdb['budget']
 
@@ -183,3 +183,33 @@ display('#23 ',s)
 sub = imdb.merge(studiodf[studiodf.studio=='Paramount Pictures'], on='imdb_id', how='inner').copy()
 s = sub.groupby('imdb_id').sum()['profit'].sort_values(ascending=True).index[0]
 display('#24 ',s)
+
+#25
+sub = imdb.merge(studiodf, on='imdb_id', how='inner').copy()
+s = sub.groupby('release_year').sum()['profit'].sort_values(ascending=False).index[0]
+display('#25 ',s)
+
+#26
+sub = imdb.merge(studiodf[studiodf.studio=='Warner Bros.'], on='imdb_id', how='inner').copy()
+s = sub.groupby('release_year').sum()['profit'].sort_values(ascending=False).index[0]
+display('#26 ',s)
+
+#27
+imdb['month'] = imdb['release_date'].dt.month
+
+s = imdb.groupby('month')['imdb_id'].count().sort_values(ascending=False).index[0]
+display('#27 ',s)
+
+#28
+s = imdb[(imdb.month==6)|(imdb.month==7)|(imdb.month==8)]['imdb_id'].count()
+display('#28 ',s)
+
+#29
+s = imdb[(imdb.month==12)|(imdb.month==1)|(imdb.month==2)].groupby('director')['imdb_id'].count().sort_values(ascending=False).index[0]
+display('#29 ',s)
+
+#30
+imdb['month'] = imdb['release_date'].dt.month
+pivot = imdb.pivot_table(values=['profit'], index=['release_year'], columns=['month'], aggfunc='sum')
+maxValue = pivot.idxmax(axis=1)
+display('#30', maxValue.describe())
