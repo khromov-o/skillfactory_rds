@@ -1,6 +1,7 @@
 from IPython.display import display
 import numpy as np
 import pandas as pd
+from itertools import combinations
 
 imdb = pd.read_csv('./data.csv', parse_dates= ['release_date'])
 display(imdb.columns)
@@ -209,7 +210,59 @@ s = imdb[(imdb.month==12)|(imdb.month==1)|(imdb.month==2)].groupby('director')['
 display('#29 ',s)
 
 #30
-imdb['month'] = imdb['release_date'].dt.month
 pivot = imdb.pivot_table(values=['profit'], index=['release_year'], columns=['month'], aggfunc='sum')
 maxValue = pivot.idxmax(axis=1)
 display('#30', maxValue.describe())
+
+#31
+imdb['clen'] = imdb['original_title'].str.len()
+sub = imdb.merge(studiodf, on='imdb_id', how='inner').copy()
+s = sub.groupby('studio')['clen'].mean().sort_values(ascending=False).index[0]
+display('#31', s)
+
+#32
+imdb['wlen'] = imdb['original_title'].apply(lambda  x : len(x.split()))
+sub = imdb.merge(studiodf, on='imdb_id', how='inner').copy()
+s = sub.groupby('studio')['wlen'].mean().sort_values(ascending=False)
+display('#32', s)
+
+#33
+wordSet = set()
+imdb['original_title'].str.lower().str.split().apply(wordSet.update)
+display('#33', len(wordSet))
+
+#34
+display('#34', imdb[imdb.vote_average>imdb.vote_average.quantile(.99)].original_title)
+
+#35
+def getActorPairs(cast):
+    pairs = []
+    for pair in combinations(cast.split('|'), 2):
+        pairs.append(' and '.join(sorted(pair)))
+    return ' | '.join(pairs)
+
+imdb['actors'] = imdb['cast'].apply(getActorPairs)
+actorsPairs = imdb.actors.str.get_dummies(sep='|')
+maxValue = actorsPairs.idxmax(axis=1)
+display('#35 ', maxValue.describe())
+
+#36
+def getProfit(x):
+    if x>0:
+        return 1
+    else:
+        return 0
+
+def getProfitB(x):
+    if x>0:
+        return 0
+    else:
+        return 1
+
+imdb['profit_a'] = imdb.profit.apply(getProfit)
+imdb['profit_b'] = imdb.profit.apply(getProfitB)
+directors = ['Quentin Tarantino','Steven Soderbergh','Robert Rodriguez', 'Christopher Nolan', 'Clint Eastwood']
+sub = imdb[imdb.director.isin(directors)].groupby(['director']).agg({'profit_a': 'sum', 'profit_b': 'sum'})
+sub['profit_result'] = sub['profit_a']/(sub['profit_a']+sub['profit_b'])
+
+display('#36', sub)
